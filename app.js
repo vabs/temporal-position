@@ -175,7 +175,11 @@ class TemporalPosition {
         }
         
         try {
-            const response = await fetch(`https://api.wikimedia.org/feed/v1/wikipedia/en/onthisday/events/${month}/${day}`);
+            const response = await fetch(`https://en.wikipedia.org/api/rest_v1/feed/onthisday/events/${month}/${day}`, {
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
             
             if (!response.ok) {
                 throw new Error('Failed to fetch events');
