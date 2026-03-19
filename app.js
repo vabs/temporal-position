@@ -218,9 +218,18 @@ class TemporalPosition {
             year.className = 'event-year';
             year.textContent = event.year;
             
-            const title = document.createElement('div');
+            const title = document.createElement('a');
             title.className = 'event-title';
             title.textContent = event.text;
+            
+            if (event.pages && event.pages.length > 0) {
+                const page = event.pages[0];
+                title.href = `https://en.wikipedia.org/wiki/${encodeURIComponent(page.title)}`;
+                title.target = '_blank';
+                title.rel = 'noopener noreferrer';
+            } else {
+                title.style.cursor = 'default';
+            }
             
             const description = document.createElement('div');
             description.className = 'event-description';
