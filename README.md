@@ -29,13 +29,13 @@ The interface follows the "Digital Zen" design philosophy:
 
 ## Live Demo
 
-[View Live Demo](https://yourusername.github.io/temporal-position/)
+[View Live Demo](https://vabs.github.io/temporal-position/)
 
 ## Local Development
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/temporal-position.git
+git clone https://github.com/vabs/temporal-position.git
 cd temporal-position
 ```
 
@@ -54,7 +54,7 @@ No build process required - it's pure HTML/CSS/JS!
 4. Choose `main` branch and `/ (root)` folder
 5. Click Save
 
-Your site will be live at `https://yourusername.github.io/temporal-position/`
+Your site will be live at `https://vabs.github.io/temporal-position/`
 
 ## Browser Support
 
