@@ -260,7 +260,7 @@ body {
     transition: color 0.2s ease;
 }
 
-.event-title:hover {
+a.event-title:hover {
     color: var(--primary);
 }
 
