@@ -31,6 +31,10 @@ The interface follows the "Digital Zen" design philosophy:
 
 [View Live Demo](https://vabs.github.io/temporal-position/)
 
+## Screenshots
+
+![Temporal Position App](./screen.png)
+
 ## Local Development
 
 1. Clone the repository:

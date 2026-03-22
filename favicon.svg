@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">Temporal Position favicon</title>
+  <desc id="desc">Neon green temporal glyph on black background</desc>
+  <rect width="64" height="64" fill="#000000"/>
+  <rect x="12" y="12" width="40" height="6" fill="#9cff93"/>
+  <rect x="29" y="12" width="6" height="34" fill="#9cff93"/>
+  <rect x="14" y="24" width="16" height="4" fill="#9cff93"/>
+  <rect x="34" y="36" width="16" height="4" fill="#9cff93"/>
+  <rect x="46" y="28" width="4" height="12" fill="#9cff93"/>
+</svg>
