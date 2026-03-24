@@ -51,6 +51,7 @@ class TemporalPosition {
         const elapsed = now - startOfDay;
         const total = endOfDay - startOfDay;
         const percentage = Math.floor((elapsed / total) * 100);
+        const daySegmentsToFill = this.getFilledSegments(elapsed / total, 24, percentage);
         
         const remaining = total - elapsed;
         const hoursRemaining = Math.floor(remaining / (1000 * 60 * 60));
@@ -59,7 +60,7 @@ class TemporalPosition {
         document.getElementById('dayPercentage').textContent = `${percentage}%`;
         document.getElementById('dayCycles').textContent = `Cycles remaining: ${hoursRemaining}h ${minutesRemaining}m`;
         
-        this.renderSegments('daySegments', 24, percentage / 100 * 24, 'filled-day');
+        this.renderSegments('daySegments', 24, daySegmentsToFill, 'filled-day');
     }
 
     updateWeekProgress() {
@@ -74,26 +75,29 @@ class TemporalPosition {
         const elapsed = now - startOfWeek;
         const weekInMs = 7 * 24 * 60 * 60 * 1000;
         const percentage = Math.floor((elapsed / weekInMs) * 100);
+        const weekSegmentsToFill = this.getFilledSegments(elapsed / weekInMs, 7, percentage);
         
         const weekNumber = this.getWeekNumber(now);
+        const totalWeeksInYear = this.getIsoWeeksInYear(now.getFullYear());
         
         document.getElementById('weekPercentage').textContent = `${percentage}%`;
-        document.getElementById('weekInfo').textContent = `Current: Week ${String(weekNumber).padStart(2, '0')} of 52`;
+        document.getElementById('weekInfo').textContent = `Current: Week ${String(weekNumber).padStart(2, '0')} of ${totalWeeksInYear}`;
         
-        this.renderSegments('weekSegments', 7, adjustedDay + (now.getHours() / 24), 'filled-week');
+        this.renderSegments('weekSegments', 7, weekSegmentsToFill, 'filled-week');
     }
 
     updateMonthProgress() {
         const now = new Date();
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
         
         const elapsed = now - startOfMonth;
-        const total = endOfMonth - startOfMonth;
+        const total = startOfNextMonth - startOfMonth;
         const percentage = Math.floor((elapsed / total) * 100);
         
         const daysInMonth = endOfMonth.getDate();
-        const currentDay = now.getDate();
+        const monthSegmentsToFill = this.getFilledSegments(elapsed / total, daysInMonth, percentage);
         const phase = this.getMoonPhase(percentage);
         
         const monthName = now.toLocaleDateString('en-US', { month: 'short' });
@@ -101,7 +105,7 @@ class TemporalPosition {
         document.getElementById('monthPercentage').textContent = `${percentage}%`;
         document.getElementById('monthPhase').textContent = `${monthName} Phase: ${phase}`;
         
-        this.renderSegments('monthSegments', daysInMonth, currentDay + (now.getHours() / 24), 'filled-month');
+        this.renderSegments('monthSegments', daysInMonth, monthSegmentsToFill, 'filled-month');
     }
 
     updateYearProgress() {
@@ -112,6 +116,7 @@ class TemporalPosition {
         const elapsed = now - startOfYear;
         const total = endOfYear - startOfYear;
         const percentage = Math.floor((elapsed / total) * 100);
+        const yearSegmentsToFill = this.getFilledSegments(elapsed / total, 12, percentage);
         
         const quarter = Math.ceil((now.getMonth() + 1) / 3);
         const year = now.getFullYear();
@@ -119,7 +124,16 @@ class TemporalPosition {
         document.getElementById('yearPercentage').textContent = `${percentage}%`;
         document.getElementById('yearEra').textContent = `Era: ${year} Quarter ${quarter}`;
         
-        this.renderSegments('yearSegments', 12, now.getMonth() + ((now.getDate() - 1) / new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()), 'filled-year');
+        this.renderSegments('yearSegments', 12, yearSegmentsToFill, 'filled-year');
+    }
+
+    getFilledSegments(progressRatio, totalSegments, percentage) {
+        if (percentage <= 0) {
+            return 0;
+        }
+
+        const rounded = Math.round(progressRatio * totalSegments);
+        return Math.min(totalSegments, Math.max(1, rounded));
     }
 
     renderSegments(containerId, totalSegments, filledCount, filledClass) {
@@ -150,6 +164,10 @@ class TemporalPosition {
         d.setUTCDate(d.getUTCDate() + 4 - dayNum);
         const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
         return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    }
+
+    getIsoWeeksInYear(year) {
+        return this.getWeekNumber(new Date(Date.UTC(year, 11, 28)));
     }
 
     getMoonPhase(percentage) {
