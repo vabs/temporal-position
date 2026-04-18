@@ -2,13 +2,46 @@ class TemporalPosition {
     constructor() {
         this.eventsCache = null;
         this.eventsCacheDate = null;
+        this.dayMode = 'full';
+        this.workStartHour = 9;
+        this.workEndHour = 17;
         this.init();
     }
 
     init() {
+        this.setupDayModeToggle();
         this.updateAll();
         setInterval(() => this.updateAll(), 1000);
         this.fetchHistoricalEvents();
+    }
+
+    setupDayModeToggle() {
+        const buttons = document.querySelectorAll('.day-mode-btn');
+        if (!buttons.length) {
+            return;
+        }
+
+        this.updateDayModeButtons();
+
+        buttons.forEach((button) => {
+            button.addEventListener('click', () => {
+                const selectedMode = button.dataset.mode === 'work' ? 'work' : 'full';
+                if (selectedMode === this.dayMode) {
+                    return;
+                }
+
+                this.dayMode = selectedMode;
+                this.updateDayModeButtons();
+                this.updateDayProgress();
+            });
+        });
+    }
+
+    updateDayModeButtons() {
+        const buttons = document.querySelectorAll('.day-mode-btn');
+        buttons.forEach((button) => {
+            button.classList.toggle('active', button.dataset.mode === this.dayMode);
+        });
     }
 
     updateAll() {
@@ -45,22 +78,53 @@ class TemporalPosition {
 
     updateDayProgress() {
         const now = new Date();
-        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-        
-        const elapsed = now - startOfDay;
-        const total = endOfDay - startOfDay;
-        const percentage = Math.floor((elapsed / total) * 100);
-        const daySegmentsToFill = this.getFilledSegments(elapsed / total, 24, percentage);
-        
-        const remaining = total - elapsed;
+        const { elapsed, total, totalSegments, remainingLabel } = this.getDayProgressMetrics(now);
+        const progressRatio = total === 0 ? 0 : elapsed / total;
+        const percentage = Math.floor(progressRatio * 100);
+        const daySegmentsToFill = this.getFilledSegments(progressRatio, totalSegments, percentage);
+
+        const remaining = Math.max(0, total - elapsed);
         const hoursRemaining = Math.floor(remaining / (1000 * 60 * 60));
         const minutesRemaining = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
-        
+
         document.getElementById('dayPercentage').textContent = `${percentage}%`;
-        document.getElementById('dayCycles').textContent = `Cycles remaining: ${hoursRemaining}h ${minutesRemaining}m`;
-        
-        this.renderSegments('daySegments', 24, daySegmentsToFill, 'filled-day');
+        document.getElementById('dayCycles').textContent = `${remainingLabel}: ${hoursRemaining}h ${minutesRemaining}m`;
+
+        this.renderSegments('daySegments', totalSegments, daySegmentsToFill, 'filled-day');
+    }
+
+    getDayProgressMetrics(now) {
+        if (this.dayMode === 'work') {
+            const startOfWorkday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), this.workStartHour);
+            const endOfWorkday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), this.workEndHour);
+            const total = endOfWorkday - startOfWorkday;
+
+            let elapsed = 0;
+            if (now <= startOfWorkday) {
+                elapsed = 0;
+            } else if (now >= endOfWorkday) {
+                elapsed = total;
+            } else {
+                elapsed = now - startOfWorkday;
+            }
+
+            return {
+                elapsed,
+                total,
+                totalSegments: this.workEndHour - this.workStartHour,
+                remainingLabel: 'Work cycles remaining'
+            };
+        }
+
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+
+        return {
+            elapsed: now - startOfDay,
+            total: endOfDay - startOfDay,
+            totalSegments: 24,
+            remainingLabel: 'Cycles remaining'
+        };
     }
 
     updateWeekProgress() {

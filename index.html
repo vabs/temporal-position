@@ -30,7 +30,13 @@
                 <div class="progress-section">
                     <div class="progress-header">
                         <div class="progress-label-group">
-                            <div class="progress-label">DAY</div>
+                            <div class="progress-label-row">
+                                <div class="progress-label">DAY</div>
+                                <div class="day-mode-toggle" role="group" aria-label="Day calculation mode">
+                                    <button class="day-mode-btn active" id="mode24hBtn" data-mode="full" type="button">24H</button>
+                                    <button class="day-mode-btn" id="modeWorkBtn" data-mode="work" type="button">9-5</button>
+                                </div>
+                            </div>
                             <div class="progress-subtitle" id="dayCycles">Cycles remaining: 0h 0m</div>
                         </div>
                         <div class="progress-percentage" id="dayPercentage">0%</div>
