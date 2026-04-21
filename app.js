@@ -2,45 +2,39 @@ class TemporalPosition {
     constructor() {
         this.eventsCache = null;
         this.eventsCacheDate = null;
-        this.dayMode = 'full';
+        this.workMode = false;
         this.workStartHour = 9;
         this.workEndHour = 17;
+        this.workDaysPerWeek = 5;
+        this.workDaysPerMonth = 20;
+        this.workDaysPerYear = 246;
         this.init();
     }
 
     init() {
-        this.setupDayModeToggle();
+        this.setupWorkModeToggle();
         this.updateAll();
         setInterval(() => this.updateAll(), 1000);
         this.fetchHistoricalEvents();
     }
 
-    setupDayModeToggle() {
-        const buttons = document.querySelectorAll('.day-mode-btn');
+    setupWorkModeToggle() {
+        const buttons = document.querySelectorAll('.work-mode-btn');
         if (!buttons.length) {
             return;
         }
 
-        this.updateDayModeButtons();
-
         buttons.forEach((button) => {
             button.addEventListener('click', () => {
-                const selectedMode = button.dataset.mode === 'work' ? 'work' : 'full';
-                if (selectedMode === this.dayMode) {
+                const selectedWork = button.dataset.mode === 'work';
+                if (selectedWork === this.workMode) {
                     return;
                 }
 
-                this.dayMode = selectedMode;
-                this.updateDayModeButtons();
-                this.updateDayProgress();
+                this.workMode = selectedWork;
+                buttons.forEach((b) => b.classList.toggle('active', b.dataset.mode === button.dataset.mode));
+                this.updateAll();
             });
-        });
-    }
-
-    updateDayModeButtons() {
-        const buttons = document.querySelectorAll('.day-mode-btn');
-        buttons.forEach((button) => {
-            button.classList.toggle('active', button.dataset.mode === this.dayMode);
         });
     }
 
@@ -78,117 +72,169 @@ class TemporalPosition {
 
     updateDayProgress() {
         const now = new Date();
-        const { elapsed, total, totalSegments, remainingLabel } = this.getDayProgressMetrics(now);
-        const progressRatio = total === 0 ? 0 : elapsed / total;
-        const percentage = Math.floor(progressRatio * 100);
-        const daySegmentsToFill = this.getFilledSegments(progressRatio, totalSegments, percentage);
+        let percentage, hoursRemaining, minutesRemaining, totalSegments, segmentsFilled, subtitle;
 
-        const remaining = Math.max(0, total - elapsed);
-        const hoursRemaining = Math.floor(remaining / (1000 * 60 * 60));
-        const minutesRemaining = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
-
-        document.getElementById('dayPercentage').textContent = `${percentage}%`;
-        document.getElementById('dayCycles').textContent = `${remainingLabel}: ${hoursRemaining}h ${minutesRemaining}m`;
-
-        this.renderSegments('daySegments', totalSegments, daySegmentsToFill, 'filled-day');
-    }
-
-    getDayProgressMetrics(now) {
-        if (this.dayMode === 'work') {
-            const startOfWorkday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), this.workStartHour);
-            const endOfWorkday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), this.workEndHour);
-            const total = endOfWorkday - startOfWorkday;
-
-            let elapsed = 0;
-            if (now <= startOfWorkday) {
-                elapsed = 0;
-            } else if (now >= endOfWorkday) {
-                elapsed = total;
-            } else {
-                elapsed = now - startOfWorkday;
-            }
-
-            return {
-                elapsed,
-                total,
-                totalSegments: this.workEndHour - this.workStartHour,
-                remainingLabel: 'Work cycles remaining'
-            };
+        if (this.workMode) {
+            const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), this.workStartHour);
+            const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), this.workEndHour);
+            const total = end - start;
+            const elapsed = Math.min(Math.max(now - start, 0), total);
+            const ratio = elapsed / total;
+            percentage = Math.floor(ratio * 100);
+            totalSegments = this.workEndHour - this.workStartHour;
+            segmentsFilled = this.getFilledSegments(ratio, totalSegments, percentage);
+            const remaining = Math.max(0, total - elapsed);
+            hoursRemaining = Math.floor(remaining / (1000 * 60 * 60));
+            minutesRemaining = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+            subtitle = `Work hours remaining: ${hoursRemaining}h ${minutesRemaining}m`;
+        } else {
+            const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+            const total = end - start;
+            const elapsed = now - start;
+            const ratio = elapsed / total;
+            percentage = Math.floor(ratio * 100);
+            totalSegments = 24;
+            segmentsFilled = this.getFilledSegments(ratio, totalSegments, percentage);
+            const remaining = Math.max(0, total - elapsed);
+            hoursRemaining = Math.floor(remaining / (1000 * 60 * 60));
+            minutesRemaining = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+            subtitle = `Cycles remaining: ${hoursRemaining}h ${minutesRemaining}m`;
         }
 
-        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-
-        return {
-            elapsed: now - startOfDay,
-            total: endOfDay - startOfDay,
-            totalSegments: 24,
-            remainingLabel: 'Cycles remaining'
-        };
+        document.getElementById('dayPercentage').textContent = `${percentage}%`;
+        document.getElementById('dayCycles').textContent = subtitle;
+        this.renderSegments('daySegments', totalSegments, segmentsFilled, 'filled-day');
     }
 
     updateWeekProgress() {
         const now = new Date();
-        const dayOfWeek = now.getDay();
-        const adjustedDay = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-        
-        const startOfWeek = new Date(now);
-        startOfWeek.setDate(now.getDate() - adjustedDay);
-        startOfWeek.setHours(0, 0, 0, 0);
-        
-        const elapsed = now - startOfWeek;
-        const weekInMs = 7 * 24 * 60 * 60 * 1000;
-        const percentage = Math.floor((elapsed / weekInMs) * 100);
-        const weekSegmentsToFill = this.getFilledSegments(elapsed / weekInMs, 7, percentage);
-        
         const weekNumber = this.getWeekNumber(now);
         const totalWeeksInYear = this.getIsoWeeksInYear(now.getFullYear());
-        
+        let percentage, totalSegments, segmentsFilled, subtitle;
+
+        if (this.workMode) {
+            const dayOfWeek = now.getDay();
+            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+            const workDayIndex = isWeekend ? this.workDaysPerWeek : Math.max(0, dayOfWeek - 1);
+
+            const monday = new Date(now);
+            monday.setDate(now.getDate() - (isWeekend ? (dayOfWeek === 0 ? 6 : 5) : dayOfWeek - 1));
+            monday.setHours(0, 0, 0, 0);
+            const friday = new Date(monday);
+            friday.setDate(monday.getDate() + 5);
+
+            const total = friday - monday;
+            const elapsed = Math.min(Math.max(now - monday, 0), total);
+            const ratio = elapsed / total;
+            percentage = Math.floor(ratio * 100);
+            totalSegments = this.workDaysPerWeek;
+            segmentsFilled = this.getFilledSegments(ratio, totalSegments, percentage);
+            const daysLeft = Math.max(0, this.workDaysPerWeek - workDayIndex - (isWeekend ? 0 : 1));
+            subtitle = `Work week: ${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining`;
+        } else {
+            const dayOfWeek = now.getDay();
+            const adjustedDay = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+            const startOfWeek = new Date(now);
+            startOfWeek.setDate(now.getDate() - adjustedDay);
+            startOfWeek.setHours(0, 0, 0, 0);
+            const elapsed = now - startOfWeek;
+            const weekInMs = 7 * 24 * 60 * 60 * 1000;
+            const ratio = elapsed / weekInMs;
+            percentage = Math.floor(ratio * 100);
+            totalSegments = 7;
+            segmentsFilled = this.getFilledSegments(ratio, totalSegments, percentage);
+            subtitle = `Current: Week ${String(weekNumber).padStart(2, '0')} of ${totalWeeksInYear}`;
+        }
+
         document.getElementById('weekPercentage').textContent = `${percentage}%`;
-        document.getElementById('weekInfo').textContent = `Current: Week ${String(weekNumber).padStart(2, '0')} of ${totalWeeksInYear}`;
-        
-        this.renderSegments('weekSegments', 7, weekSegmentsToFill, 'filled-week');
+        document.getElementById('weekInfo').textContent = subtitle;
+        this.renderSegments('weekSegments', totalSegments, segmentsFilled, 'filled-week');
     }
 
     updateMonthProgress() {
         const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        
-        const elapsed = now - startOfMonth;
-        const total = startOfNextMonth - startOfMonth;
-        const percentage = Math.floor((elapsed / total) * 100);
-        
-        const daysInMonth = endOfMonth.getDate();
-        const monthSegmentsToFill = this.getFilledSegments(elapsed / total, daysInMonth, percentage);
-        const phase = this.getMoonPhase(percentage);
-        
         const monthName = now.toLocaleDateString('en-US', { month: 'short' });
-        
+        let percentage, totalSegments, segmentsFilled, subtitle;
+
+        if (this.workMode) {
+            const year = now.getFullYear();
+            const month = now.getMonth();
+            const today = now.getDate();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            let workDaysElapsed = 0;
+            for (let d = 1; d < today; d++) {
+                const dow = new Date(year, month, d).getDay();
+                if (dow !== 0 && dow !== 6) workDaysElapsed++;
+            }
+
+            let workDaysRemaining = 0;
+            for (let d = today; d <= daysInMonth; d++) {
+                const dow = new Date(year, month, d).getDay();
+                if (dow !== 0 && dow !== 6) workDaysRemaining++;
+            }
+
+            const totalWorkDaysInMonth = workDaysElapsed + workDaysRemaining;
+            const ratio = totalWorkDaysInMonth === 0 ? 0 : workDaysElapsed / totalWorkDaysInMonth;
+            percentage = Math.floor(ratio * 100);
+            totalSegments = totalWorkDaysInMonth;
+            segmentsFilled = this.getFilledSegments(ratio, totalSegments, percentage);
+            subtitle = `Work days remaining: ${workDaysRemaining}`;
+        } else {
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+            const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            const elapsed = now - startOfMonth;
+            const total = startOfNextMonth - startOfMonth;
+            const ratio = elapsed / total;
+            percentage = Math.floor(ratio * 100);
+            const daysInMonth = endOfMonth.getDate();
+            totalSegments = daysInMonth;
+            segmentsFilled = this.getFilledSegments(ratio, totalSegments, percentage);
+            const phase = this.getMoonPhase(percentage);
+            subtitle = `${monthName} Phase: ${phase}`;
+        }
+
         document.getElementById('monthPercentage').textContent = `${percentage}%`;
-        document.getElementById('monthPhase').textContent = `${monthName} Phase: ${phase}`;
-        
-        this.renderSegments('monthSegments', daysInMonth, monthSegmentsToFill, 'filled-month');
+        document.getElementById('monthPhase').textContent = subtitle;
+        this.renderSegments('monthSegments', totalSegments, segmentsFilled, 'filled-month');
     }
 
     updateYearProgress() {
         const now = new Date();
-        const startOfYear = new Date(now.getFullYear(), 0, 1);
-        const endOfYear = new Date(now.getFullYear() + 1, 0, 1);
-        
-        const elapsed = now - startOfYear;
-        const total = endOfYear - startOfYear;
-        const percentage = Math.floor((elapsed / total) * 100);
-        const yearSegmentsToFill = this.getFilledSegments(elapsed / total, 12, percentage);
-        
-        const quarter = Math.ceil((now.getMonth() + 1) / 3);
         const year = now.getFullYear();
-        
+        const quarter = Math.ceil((now.getMonth() + 1) / 3);
+        let percentage, totalSegments, segmentsFilled, subtitle;
+
+        if (this.workMode) {
+            const startOfYear = new Date(year, 0, 1);
+            const endOfYear = new Date(year + 1, 0, 1);
+            const calendarTotal = endOfYear - startOfYear;
+            const calendarElapsed = now - startOfYear;
+            const calendarRatio = calendarElapsed / calendarTotal;
+            const workDaysElapsed = Math.floor(calendarRatio * this.workDaysPerYear);
+            const ratio = workDaysElapsed / this.workDaysPerYear;
+            percentage = Math.floor(ratio * 100);
+            totalSegments = 12;
+            segmentsFilled = this.getFilledSegments(ratio, totalSegments, percentage);
+            const remaining = Math.max(0, this.workDaysPerYear - workDaysElapsed);
+            subtitle = `Work days remaining: ${remaining} of ${this.workDaysPerYear}`;
+        } else {
+            const startOfYear = new Date(year, 0, 1);
+            const endOfYear = new Date(year + 1, 0, 1);
+            const elapsed = now - startOfYear;
+            const total = endOfYear - startOfYear;
+            const ratio = elapsed / total;
+            percentage = Math.floor(ratio * 100);
+            totalSegments = 12;
+            segmentsFilled = this.getFilledSegments(ratio, totalSegments, percentage);
+            subtitle = `Era: ${year} Quarter ${quarter}`;
+        }
+
         document.getElementById('yearPercentage').textContent = `${percentage}%`;
-        document.getElementById('yearEra').textContent = `Era: ${year} Quarter ${quarter}`;
-        
-        this.renderSegments('yearSegments', 12, yearSegmentsToFill, 'filled-year');
+        document.getElementById('yearEra').textContent = subtitle;
+        this.renderSegments('yearSegments', totalSegments, segmentsFilled, 'filled-year');
     }
 
     getFilledSegments(progressRatio, totalSegments, percentage) {

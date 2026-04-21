@@ -48,7 +48,40 @@ body {
 }
 
 .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     margin-bottom: var(--spacing-48);
+}
+
+.work-mode-toggle {
+    display: inline-flex;
+    align-items: center;
+    background-color: var(--surface-high);
+    border: 1px solid var(--outline-variant);
+}
+
+.work-mode-btn {
+    border: none;
+    background: transparent;
+    color: var(--on-background-secondary);
+    font-family: 'Space Grotesk', monospace;
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    padding: 0.3rem 0.65rem;
+    cursor: pointer;
+    transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.work-mode-btn.active {
+    background-color: var(--primary);
+    color: var(--surface-lowest);
+}
+
+.work-mode-btn:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 1px;
 }
 
 .logo {
@@ -134,41 +167,6 @@ body {
     text-transform: uppercase;
 }
 
-.progress-label-row {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-10);
-}
-
-.day-mode-toggle {
-    display: inline-flex;
-    align-items: center;
-    background-color: var(--surface-high);
-    border: 1px solid var(--outline-variant);
-}
-
-.day-mode-btn {
-    border: none;
-    background: transparent;
-    color: var(--on-background-secondary);
-    font-family: 'Space Grotesk', monospace;
-    font-size: 0.625rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    padding: 0.25rem 0.45rem;
-    cursor: pointer;
-    transition: color 0.2s ease, background-color 0.2s ease;
-}
-
-.day-mode-btn.active {
-    background-color: var(--primary);
-    color: var(--surface-lowest);
-}
-
-.day-mode-btn:focus-visible {
-    outline: 2px solid var(--primary);
-    outline-offset: 1px;
-}
 
 .progress-subtitle {
     font-family: 'Inter', sans-serif;
@@ -373,11 +371,6 @@ a.event-title:hover {
         font-size: 2rem;
     }
 
-    .progress-label-row {
-        flex-wrap: wrap;
-        row-gap: var(--spacing-8);
-    }
-    
     .event-card {
         padding: var(--spacing-16);
     }
